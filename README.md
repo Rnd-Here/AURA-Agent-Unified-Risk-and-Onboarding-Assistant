@@ -90,10 +90,9 @@ Built-in search tool (simulated adversarial media lookup)
 
 
 Workflow Diagram
-graph TD
-    A[Start: User Accesses Web UI] --> B(HTTP POST: /onboard_customer);
 
-    subgraph Python Backend (FastAPI: app/server.py)
+    graph TD
+    A[Start: User Accesses Web UI] --> B(HTTP POST: /onboard_customer);
         B --> C{1. Receive PII from UI};
         C --> D[2. Generate Session ID];
         D --> E[3. Save PII & Session ID to DB];
