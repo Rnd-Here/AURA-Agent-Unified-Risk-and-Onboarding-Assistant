@@ -206,174 +206,108 @@ Containerized deployment on GCP Cloud Run or App Engine.
 
 
 
-sample input 
 
 
-{
-  "application_id": "APP-2025-001",
-  "timestamp": "2024-12-02T10:30:00Z",
-  "customer": {
-    "personal_info": {
-      "full_name": "John Michael Smith",
-      "date_of_birth": "1975-03-15",
-      "ssn": "XXX-XX-1234",
-      "nationality": "USA",
-      "us_person": true,
-      "residential_address": {
-        "street": "123 Main Street",
-        "city": "New York",
-        "state": "NY",
-        "zip": "10001",
-        "country": "USA"
-      },
-      "mailing_address": {
-        "same_as_residential": true
-      },
-      "phone": "+1-212-555-0123",
-      "email": "john.smith@email.com"
-    },
-    "financial_profile": {
-      "net_worth": 15000000,
-      "liquid_assets": 3500000,
-      "annual_income": 850000,
-      "source_of_wealth": "business_income",
-      "source_of_wealth_details": "Real estate development business owned for 15 years",
-      "expected_account_activity": {
-        "initial_deposit": 2000000,
-        "monthly_transactions": 50,
-        "average_transaction_size": 75000,
-        "expected_annual_volume": 5000000
-      }
-    },
-    "employment": {
-      "status": "self_employed",
-      "occupation": "Real Estate Developer",
-      "employer": "Smith Real Estate Development LLC",
-      "years_in_current_role": 15,
-      "industry": "real_estate"
-    },
-    "business_info": {
-      "business_name": "Smith Real Estate Development LLC",
-      "business_type": "LLC",
-      "ein": "12-3456789",
-      "date_established": "2009-03-01",
-      "business_address": {
-        "street": "456 Business Blvd",
-        "city": "New York",
-        "state": "NY",
-        "zip": "10002",
-        "country": "USA"
-      },
-      "nature_of_business": "Residential and commercial real estate development",
-      "ownership_percentage": 100,
-      "other_owners": []
-    },
-    "beneficial_owners": [
-      {
-        "name": "John Michael Smith",
-        "dob": "1975-03-15",
-        "ssn": "XXX-XX-1234",
-        "ownership_percentage": 100,
-        "control_person": true,
-        "address": {
-          "street": "123 Main Street",
-          "city": "New York",
-          "state": "NY",
-          "zip": "10001"
-        }
-      }
-    ],
-    "pep_disclosure": {
-      "is_pep": false,
-      "is_family_of_pep": false,
-      "is_close_associate_of_pep": false,
-      "details": null
-    },
-    "tax_info": {
-      "us_tax_resident": true,
-      "tax_id_number": "XXX-XX-1234",
-      "tax_country": "USA",
-      "fatca_status": "US Person"
+
+
+import pandas as pd
+import random
+from faker import Faker
+from datetime import datetime, timedelta
+import numpy as np
+
+# --- 1. CONFIGURATION ---
+fake = Faker(['en_US', 'en_GB', 'de_DE']) # Use multiple locales for diverse names/locations
+random.seed(42)
+NUM_RECORDS = 5000
+START_DATE = datetime(2024, 1, 1)
+END_DATE = datetime(2024, 12, 31)
+
+# Lookups for Transaction ID pattern
+COUNTRY_CODES = ["US", "GB", "DE", "IN", "CA", "AU", "JP"]
+TRANSFER_TYPES = ["ACH", "WIRE", "P2P", "INTL"]
+
+# --- 2. HELPER FUNCTIONS ---
+
+def generate_transaction_id():
+    """Generates a transaction ID with the pattern: COUNTRY-TYPE-NUMBER."""
+    country = random.choice(COUNTRY_CODES)
+    tx_type = random.choice(TRANSFER_TYPES)
+    # Generate an 8-digit numerical pattern
+    number = str(random.randint(10000000, 99999999))
+    return f"{country}-{tx_type}-{number}"
+
+def generate_masked_name():
+    """Generates a name with the last name masked."""
+    first_name = fake.first_name()
+    last_name = fake.last_name()
+    # Mask the last name, showing only the first letter
+    masked_last_name = last_name[0] + "*" * (len(last_name) - 1)
+    return f"{first_name} {masked_last_name}"
+
+def generate_account_number():
+    """Generates a plausible masked account number (e.g., ends in 4 digits)."""
+    # 10 digit account number, masked except for the last 4
+    masking = "*" * 6
+    last_four = str(random.randint(1000, 9999))
+    return f"{masking}{last_four}"
+
+
+# --- 3. DATA GENERATION LOOP ---
+
+audit_records = []
+
+for _ in range(NUM_RECORDS):
+    # Ensure a random timestamp within the year
+    time_delta = END_DATE - START_DATE
+    random_seconds = random.randrange(int(time_delta.total_seconds()))
+    timestamp = START_DATE + timedelta(seconds=random_seconds)
+    
+    # Generate location data
+    city = fake.city()
+    country = fake.country()
+    
+    record = {
+        'transaction_id': generate_transaction_id(),
+        'customer_name_masked': generate_masked_name(),
+        'account_number': generate_account_number(),
+        'type_of_transaction': random.choice(TRANSFER_TYPES + ["DEBIT", "CREDIT"]),
+        'date_time': timestamp,
+        'country': country,
+        'city': city,
+        'amount': round(random.uniform(10.0, 9999.99), 2)
     }
-  },
-  "documents": [
-    {
-      "document_id": "DOC-001",
-      "document_type": "government_id",
-      "document_subtype": "drivers_license",
-      "file_path": "/uploads/APP-2025-001/drivers_license.pdf",
-      "file_name": "drivers_license.pdf",
-      "file_size": 245678,
-      "upload_date": "2024-12-02T09:15:00Z",
-      "issuing_authority": "New York DMV",
-      "document_number": "D123456789",
-      "issue_date": "2020-03-15",
-      "expiry_date": "2028-03-15"
-    },
-    {
-      "document_id": "DOC-002",
-      "document_type": "proof_of_address",
-      "document_subtype": "utility_bill",
-      "file_path": "/uploads/APP-2025-001/utility_bill.pdf",
-      "file_name": "utility_bill.pdf",
-      "file_size": 123456,
-      "upload_date": "2024-12-02T09:16:00Z",
-      "statement_date": "2024-11-15",
-      "address_on_document": "123 Main Street, New York, NY 10001"
-    },
-    {
-      "document_id": "DOC-003",
-      "document_type": "financial_statement",
-      "document_subtype": "bank_statement",
-      "file_path": "/uploads/APP-2025-001/bank_statement.pdf",
-      "file_name": "bank_statement_oct2024.pdf",
-      "file_size": 567890,
-      "upload_date": "2024-12-02T09:17:00Z",
-      "statement_period": "2024-10-01 to 2024-10-31",
-      "institution": "Chase Bank"
-    },
-    {
-      "document_id": "DOC-004",
-      "document_type": "business_document",
-      "document_subtype": "articles_of_incorporation",
-      "file_path": "/uploads/APP-2025-001/llc_formation.pdf",
-      "file_name": "llc_formation_documents.pdf",
-      "file_size": 345678,
-      "upload_date": "2024-12-02T09:18:00Z",
-      "state": "New York",
-      "registration_number": "12345678"
-    },
-    {
-      "document_id": "DOC-005",
-      "document_type": "tax_document",
-      "document_subtype": "tax_return",
-      "file_path": "/uploads/APP-2025-001/tax_return_2023.pdf",
-      "file_name": "form_1040_2023.pdf",
-      "file_size": 456789,
-      "upload_date": "2024-12-02T09:19:00Z",
-      "tax_year": 2023
-    }
-  ],
-  "account_details": {
-    "account_type": "private_banking",
-    "product": "premier_wealth_management",
-    "requested_services": [
-      "investment_advisory",
-      "wealth_planning",
-      "trust_services",
-      "international_wire_transfers"
-    ],
-    "anticipated_countries": [
-      "USA",
-      "Canada",
-      "UK"
-    ]
-  },
-  "metadata": {
-    "relationship_manager": "RM-12345",
-    "branch": "New York Fifth Avenue",
-    "referral_source": "existing_customer",
-    "priority": "high",
-    "sla_deadline": "2024-12-09T23:59:59Z"
-  }
-}
+    audit_records.append(record)
+
+# --- 4. CREATE DATAFRAME AND MONTH SEGREGATION ---
+
+audit_df = pd.DataFrame(audit_records)
+
+# Convert to datetime objects if not already (important for segregation)
+audit_df['date_time'] = pd.to_datetime(audit_df['date_time'])
+
+# Segregate the month into a separate column
+audit_df['month'] = audit_df['date_time'].dt.strftime('%Y-%m')
+
+# --- 5. FINAL EXPORT ---
+
+# Reorder columns to match the requested output format
+FINAL_COLUMNS = [
+    'transaction_id', 
+    'customer_name_masked', 
+    'account_number', 
+    'type_of_transaction', 
+    'date_time', 
+    'country', 
+    'city', 
+    'amount', 
+    'month'
+]
+
+audit_df = audit_df[FINAL_COLUMNS]
+audit_df.to_csv("audit_report_table.csv", index=False)
+
+print(f"Audit Table generated successfully with {len(audit_df)} records.")
+print("File created: 'audit_report_table.csv'")
+print("\n--- Sample Record ---")
+print(audit_df.head(1).to_markdown(index=False))
